@@ -16,6 +16,31 @@ export interface Athlete {
   dietetics?: DieteticsData;
   nutritionalStatus: 'normal' | 'warning' | 'danger';
   lastEvaluation: string;
+  // Información adicional del paciente
+  contactInfo?: {
+    phone?: string;
+    email?: string;
+    emergencyContact?: string;
+    emergencyPhone?: string;
+  };
+  medicalInfo?: {
+    medicalHistory?: string;
+    allergies?: string;
+    medications?: string;
+    previousInjuries?: string;
+  };
+  sportsInfo?: {
+    yearsPlaying?: number;
+    trainingDays?: number;
+    trainingHours?: number;
+    competitions?: string;
+  };
+  nutritionalInfo?: {
+    dietaryRestrictions?: string;
+    supplements?: string;
+    hydrationHabits?: string;
+    sleepHours?: number;
+  };
 }
 
 // A: Antropometría - Mediciones corporales
