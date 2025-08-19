@@ -165,9 +165,6 @@ export default function Dashboard() {
               <Link href="/evaluaciones" className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded hover:bg-white hover:bg-opacity-15">
                 Evaluaciones
               </Link>
-              <Link href="/seguimiento-nutricional" className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded hover:bg-white hover:bg-opacity-15">
-                Seguimiento
-              </Link>
               <Link href="/reportes" className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded hover:bg-white hover:bg-opacity-15">
                 Reportes
               </Link>
@@ -218,9 +215,9 @@ export default function Dashboard() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/seguimiento-nutricional" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors group">
+                  <Link href="/seguimiento" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors group">
                     <span className="w-5 h-5 flex items-center justify-center">📈</span>
-                    <span className="font-medium">Seguimiento Nutricional</span>
+                    <span className="font-medium">Seguimiento</span>
                   </Link>
                 </li>
                 <li>
@@ -257,10 +254,6 @@ export default function Dashboard() {
               
               <div className="mt-8 space-y-3">
                 <h4 className="text-sm font-semibold text-gray-600 mb-3">Accesos Rápidos</h4>
-                <Link href="/seguimiento-nutricional" className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
-                  <span>🍎</span>
-                  <span>Seguimiento Nutricional</span>
-                </Link>
                 <button
                   onClick={() => {
                     if (athletes.length > 0) {
@@ -269,7 +262,7 @@ export default function Dashboard() {
                       alert('Primero debe registrar un deportista')
                     }
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
                 >
                   <span>➕</span>
                   <span>Nueva Evaluación</span>
@@ -284,39 +277,6 @@ export default function Dashboard() {
 
           {/* Main Content */}
           <main className="lg:col-span-3 space-y-8">
-            {/* New Nutrition Tracking Card */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">🍎 Seguimiento Nutricional</h2>
-                  <p className="text-green-100 mb-4">
-                    Registra y monitorea la ingesta diaria de alimentos de tus atletas con nuestra base de datos nutricional completa.
-                  </p>
-                  <div className="flex items-center space-x-6 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Base de datos con +50 alimentos</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Análisis nutricional completo</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Seguimiento por comidas</span>
-                    </div>
-                  </div>
-                </div>
-                <Link 
-                  href="/seguimiento-nutricional"
-                  className="bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-colors flex items-center space-x-2"
-                >
-                  <span>Acceder</span>
-                  <span>→</span>
-                </Link>
-              </div>
-            </div>
-
             {/* ABCD Overview */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
@@ -409,7 +369,6 @@ export default function Dashboard() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li><a href="#" className="hover:text-white">Inicio</a></li>
                 <li><a href="#" className="hover:text-white">Evaluaciones</a></li>
-                <li><a href="#" className="hover:text-white">Seguimiento Nutricional</a></li>
                 <li><a href="#" className="hover:text-white">Reportes</a></li>
                 <li><a href="#" className="hover:text-white">Ayuda</a></li>
               </ul>
