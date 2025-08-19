@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Athlete, ABCDEvaluation, NutritionalAlert } from '@/lib/types'
+import { Athlete, ABCDEvaluation, NutritionalAlert, MealPlan, MealReminder } from '@/lib/types'
 import { DataStorage } from '@/lib/storage'
 import { formatDate, getStatusColor, getStatusText, getCategoryText } from '@/lib/utils'
 
@@ -14,6 +14,8 @@ export default function PacienteDetallePage() {
   const [athlete, setAthlete] = useState<Athlete | null>(null)
   const [evaluations, setEvaluations] = useState<ABCDEvaluation[]>([])
   const [alerts, setAlerts] = useState<NutritionalAlert[]>([])
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([])
+  const [mealReminders, setMealReminders] = useState<MealReminder[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('general')
 
@@ -23,9 +25,15 @@ export default function PacienteDetallePage() {
       const loadedEvaluations = DataStorage.getEvaluationsByAthleteId(athleteId)
       const loadedAlerts = DataStorage.getAlertsByAthleteId(athleteId)
       
+      // Cargar planes alimenticios y recordatorios (datos vacíos por ahora)
+      const loadedMealPlans: MealPlan[] = []
+      const loadedMealReminders: MealReminder[] = []
+      
       setAthlete(loadedAthlete)
       setEvaluations(loadedEvaluations)
       setAlerts(loadedAlerts)
+      setMealPlans(loadedMealPlans)
+      setMealReminders(loadedMealReminders)
       setLoading(false)
     }
   }, [athleteId])
@@ -61,7 +69,7 @@ export default function PacienteDetallePage() {
     )
   }
 
-  const activeAlerts = alerts.filter(alert => !alert.resolved)
+  const activeAlerts = alerts.filter((alert: NutritionalAlert) => !alert.resolved)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,7 +109,7 @@ export default function PacienteDetallePage() {
             <div className="flex items-center space-x-6">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-bold text-2xl">
-                  {athlete.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  {athlete.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                 </span>
               </div>
               <div>
@@ -140,7 +148,7 @@ export default function PacienteDetallePage() {
               🚨 Alertas Activas ({activeAlerts.length})
             </h3>
             <div className="space-y-2">
-              {activeAlerts.map((alert) => (
+              {activeAlerts.map((alert: NutritionalAlert) => (
                 <div key={alert.id} className="bg-white rounded p-3 border border-red-200">
                   <div className="flex items-start justify-between">
                     <div>
@@ -162,7 +170,7 @@ export default function PacienteDetallePage() {
                     <div className="mt-2">
                       <p className="text-sm font-medium text-red-700">Recomendaciones:</p>
                       <ul className="text-sm text-red-600 list-disc list-inside">
-                        {alert.recommendations.map((rec, index) => (
+                        {alert.recommendations.map((rec: string, index: number) => (
                           <li key={index}>{rec}</li>
                         ))}
                       </ul>
@@ -229,7 +237,8 @@ export default function PacienteDetallePage() {
                 { id: 'contacto', label: 'Contacto' },
                 { id: 'medica', label: 'Información Médica' },
                 { id: 'deportiva', label: 'Información Deportiva' },
-                { id: 'nutricional', label: 'Información Nutricional' }
+                { id: 'nutricional', label: 'Información Nutricional' },
+                { id: 'planes-alimenticios', label: 'Planes Alimenticios' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -452,6 +461,35 @@ export default function PacienteDetallePage() {
                       </dd>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Planes Alimenticios */}
+            {activeTab === 'planes-alimenticios' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold text-gray-900">Planes Alimenticios ({mealPlans.length})</h4>
+                  <Link
+                    href={`/planes-alimenticios/nuevo?paciente=${athlete.id}`}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                  >
+                    Crear Nuevo Plan
+                  </Link>
+                </div>
+
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-gray-400 text-2xl">📋</span>
+                  </div>
+                  <h5 className="text-lg font-medium text-gray-900 mb-2">No hay planes alimenticios</h5>
+                  <p className="text-gray-600 mb-4">Este paciente aún no tiene planes alimenticios asignados</p>
+                  <Link
+                    href={`/planes-alimenticios/nuevo?paciente=${athlete.id}`}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Crear Primer Plan
+                  </Link>
                 </div>
               </div>
             )}

@@ -317,3 +317,182 @@ export interface SystemConfig {
     mandatoryFields: string[];
   };
 }
+
+// ==================== SISTEMA DE PLANES ALIMENTICIOS ====================
+
+// Información nutricional de un alimento
+export interface FoodItem {
+  id: string;
+  name: string;
+  category: 'cereales' | 'proteinas' | 'lacteos' | 'frutas' | 'verduras' | 'grasas' | 'leguminosas' | 'azucares' | 'bebidas';
+  calories: number; // kcal por 100g
+  macronutrients: {
+    protein: number; // g por 100g
+    carbohydrates: number; // g por 100g
+    fats: number; // g por 100g
+    fiber: number; // g por 100g
+    sugar: number; // g por 100g
+  };
+  micronutrients: {
+    sodium: number; // mg por 100g
+    potassium: number; // mg por 100g
+    calcium: number; // mg por 100g
+    iron: number; // mg por 100g
+    vitaminC: number; // mg por 100g
+    vitaminA: number; // μg por 100g
+  };
+  portionSize: {
+    standard: number; // gramos de porción estándar
+    description: string; // descripción de la porción (ej: "1 taza", "1 pieza mediana")
+  };
+  glycemicIndex?: number; // índice glucémico (0-100)
+  allergens: string[]; // alergenos comunes
+}
+
+// Porción de alimento en una comida
+export interface FoodPortion {
+  foodId: string;
+  quantity: number; // cantidad en gramos
+  portionDescription: string; // descripción legible (ej: "1 taza", "150g")
+}
+
+// Comida individual (desayuno, almuerzo, etc.)
+export interface Meal {
+  id: string;
+  name: string;
+  type: 'desayuno' | 'colacion-matutina' | 'almuerzo' | 'colacion-vespertina' | 'cena' | 'colacion-nocturna';
+  foods: FoodPortion[];
+  scheduledTime: string; // formato HH:MM
+  instructions?: string; // instrucciones especiales de preparación
+  nutritionalSummary: {
+    totalCalories: number;
+    totalProtein: number;
+    totalCarbs: number;
+    totalFats: number;
+    totalFiber: number;
+  };
+}
+
+// Plan alimenticio completo
+export interface MealPlan {
+  id: string;
+  athleteId: string;
+  name: string;
+  description?: string;
+  createdDate: string;
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'completed' | 'paused' | 'cancelled';
+  createdBy: string; // nutricionista/profesional
+  
+  // Objetivos nutricionales
+  nutritionalGoals: {
+    dailyCalories: number;
+    proteinPercentage: number; // % del total calórico
+    carbsPercentage: number; // % del total calórico
+    fatsPercentage: number; // % del total calórico
+    fiberGoal: number; // gramos por día
+    hydrationGoal: number; // litros por día
+  };
+  
+  // Plan semanal (7 días)
+  weeklyPlan: {
+    [key: string]: { // 'monday', 'tuesday', etc.
+      meals: Meal[];
+      notes?: string;
+    };
+  };
+  
+  // Restricciones y consideraciones
+  restrictions: {
+    allergies: string[];
+    intolerances: string[];
+    dietaryPreferences: string[]; // vegetariano, vegano, etc.
+    medicalRestrictions: string[];
+  };
+  
+  // Seguimiento
+  adherence?: {
+    weeklyCompliance: number; // porcentaje de cumplimiento semanal
+    missedMeals: number;
+    notes: string[];
+  };
+}
+
+// Recordatorio de comida
+export interface MealReminder {
+  id: string;
+  athleteId: string;
+  mealPlanId: string;
+  mealId: string;
+  type: 'meal' | 'hydration' | 'supplement' | 'measurement';
+  title: string;
+  message: string;
+  scheduledTime: string; // formato HH:MM
+  daysOfWeek: number[]; // 0=domingo, 1=lunes, etc.
+  isActive: boolean;
+  createdDate: string;
+  lastTriggered?: string;
+}
+
+// Seguimiento diario del plan
+export interface DailyTracking {
+  id: string;
+  athleteId: string;
+  mealPlanId: string;
+  date: string; // YYYY-MM-DD
+  meals: {
+    mealId: string;
+    consumed: boolean;
+    consumedTime?: string;
+    notes?: string;
+    satisfactionLevel?: 1 | 2 | 3 | 4 | 5; // escala de satisfacción
+  }[];
+  hydration: {
+    goal: number; // litros
+    consumed: number; // litros
+  };
+  supplements: {
+    name: string;
+    taken: boolean;
+    time?: string;
+  }[];
+  overallCompliance: number; // porcentaje del día
+  notes?: string;
+}
+
+// Análisis nutricional del plan
+export interface NutritionalAnalysis {
+  id: string;
+  mealPlanId: string;
+  analysisDate: string;
+  dailyAverages: {
+    calories: number;
+    protein: number;
+    carbohydrates: number;
+    fats: number;
+    fiber: number;
+    sodium: number;
+    sugar: number;
+  };
+  weeklyDistribution: {
+    [day: string]: {
+      calories: number;
+      macronutrients: {
+        protein: number;
+        carbs: number;
+        fats: number;
+      };
+    };
+  };
+  recommendations: string[];
+  deficiencies: string[];
+  excesses: string[];
+  complianceWithGoals: {
+    calories: number; // porcentaje de cumplimiento
+    protein: number;
+    carbs: number;
+    fats: number;
+    fiber: number;
+  };
+}

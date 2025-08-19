@@ -1,4 +1,4 @@
-import { Athlete, ABCDEvaluation, TreatmentPlan, NutritionalAlert, Report } from './types'
+import { Athlete, ABCDEvaluation, TreatmentPlan, NutritionalAlert, Report, MealPlan, MealReminder, DailyTracking, NutritionalAnalysis } from './types'
 import { generateId } from './utils'
 
 // Sistema de almacenamiento local para la aplicación
@@ -9,7 +9,11 @@ export class DataStorage {
     TREATMENT_PLANS: 'ergo-sanitas-treatment-plans',
     ALERTS: 'ergo-sanitas-alerts',
     REPORTS: 'ergo-sanitas-reports',
-    SETTINGS: 'ergo-sanitas-settings'
+    SETTINGS: 'ergo-sanitas-settings',
+    MEAL_PLANS: 'ergo-sanitas-meal-plans',
+    MEAL_REMINDERS: 'ergo-sanitas-meal-reminders',
+    DAILY_TRACKING: 'ergo-sanitas-daily-tracking',
+    NUTRITIONAL_ANALYSIS: 'ergo-sanitas-nutritional-analysis'
   }
 
   // Métodos para Atletas
@@ -51,10 +55,13 @@ export class DataStorage {
       const athletes = this.getAthletes().filter(a => a.id !== id)
       localStorage.setItem(this.STORAGE_KEYS.ATHLETES, JSON.stringify(athletes))
       
-      // También eliminar evaluaciones y planes relacionados
+      // También eliminar evaluaciones, planes y datos relacionados
       this.deleteEvaluationsByAthleteId(id)
       this.deleteTreatmentPlansByAthleteId(id)
       this.deleteAlertsByAthleteId(id)
+      this.deleteMealPlansByAthleteId(id)
+      this.deleteMealRemindersByAthleteId(id)
+      this.deleteDailyTrackingByAthleteId(id)
     } catch (error) {
       console.error('Error deleting athlete:', error)
       throw new Error('No se pudo eliminar el deportista')
@@ -236,6 +243,263 @@ export class DataStorage {
     }
   }
 
+  // ==================== MÉTODOS PARA PLANES ALIMENTICIOS ====================
+
+  // Métodos para Planes Alimenticios
+  static getMealPlans(): MealPlan[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEYS.MEAL_PLANS)
+      return data ? JSON.parse(data) : []
+    } catch (error) {
+      console.error('Error loading meal plans:', error)
+      return []
+    }
+  }
+
+  static saveMealPlan(mealPlan: MealPlan): void {
+    try {
+      const mealPlans = this.getMealPlans()
+      const existingIndex = mealPlans.findIndex(mp => mp.id === mealPlan.id)
+      
+      if (existingIndex >= 0) {
+        mealPlans[existingIndex] = mealPlan
+      } else {
+        mealPlans.push(mealPlan)
+      }
+      
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_PLANS, JSON.stringify(mealPlans))
+    } catch (error) {
+      console.error('Error saving meal plan:', error)
+      throw new Error('No se pudo guardar el plan alimenticio')
+    }
+  }
+
+  static getMealPlanById(id: string): MealPlan | null {
+    const mealPlans = this.getMealPlans()
+    return mealPlans.find(mp => mp.id === id) || null
+  }
+
+  static getMealPlansByAthleteId(athleteId: string): MealPlan[] {
+    return this.getMealPlans().filter(mp => mp.athleteId === athleteId)
+  }
+
+  static getActiveMealPlanByAthleteId(athleteId: string): MealPlan | null {
+    const mealPlans = this.getMealPlansByAthleteId(athleteId)
+    return mealPlans.find(mp => mp.status === 'active') || null
+  }
+
+  static deleteMealPlan(id: string): void {
+    try {
+      const mealPlans = this.getMealPlans().filter(mp => mp.id !== id)
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_PLANS, JSON.stringify(mealPlans))
+      
+      // También eliminar recordatorios y seguimiento relacionados
+      this.deleteMealRemindersByMealPlanId(id)
+      this.deleteDailyTrackingByMealPlanId(id)
+    } catch (error) {
+      console.error('Error deleting meal plan:', error)
+      throw new Error('No se pudo eliminar el plan alimenticio')
+    }
+  }
+
+  static deleteMealPlansByAthleteId(athleteId: string): void {
+    try {
+      const mealPlans = this.getMealPlans().filter(mp => mp.athleteId !== athleteId)
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_PLANS, JSON.stringify(mealPlans))
+    } catch (error) {
+      console.error('Error deleting meal plans:', error)
+    }
+  }
+
+  // Métodos para Recordatorios de Comidas
+  static getMealReminders(): MealReminder[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEYS.MEAL_REMINDERS)
+      return data ? JSON.parse(data) : []
+    } catch (error) {
+      console.error('Error loading meal reminders:', error)
+      return []
+    }
+  }
+
+  static saveMealReminder(reminder: MealReminder): void {
+    try {
+      const reminders = this.getMealReminders()
+      const existingIndex = reminders.findIndex(r => r.id === reminder.id)
+      
+      if (existingIndex >= 0) {
+        reminders[existingIndex] = reminder
+      } else {
+        reminders.push(reminder)
+      }
+      
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_REMINDERS, JSON.stringify(reminders))
+    } catch (error) {
+      console.error('Error saving meal reminder:', error)
+      throw new Error('No se pudo guardar el recordatorio')
+    }
+  }
+
+  static getMealRemindersByAthleteId(athleteId: string): MealReminder[] {
+    return this.getMealReminders().filter(r => r.athleteId === athleteId)
+  }
+
+  static getMealRemindersByMealPlanId(mealPlanId: string): MealReminder[] {
+    return this.getMealReminders().filter(r => r.mealPlanId === mealPlanId)
+  }
+
+  static getActiveMealReminders(): MealReminder[] {
+    return this.getMealReminders().filter(r => r.isActive)
+  }
+
+  static deleteMealReminder(id: string): void {
+    try {
+      const reminders = this.getMealReminders().filter(r => r.id !== id)
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_REMINDERS, JSON.stringify(reminders))
+    } catch (error) {
+      console.error('Error deleting meal reminder:', error)
+      throw new Error('No se pudo eliminar el recordatorio')
+    }
+  }
+
+  static deleteMealRemindersByMealPlanId(mealPlanId: string): void {
+    try {
+      const reminders = this.getMealReminders().filter(r => r.mealPlanId !== mealPlanId)
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_REMINDERS, JSON.stringify(reminders))
+    } catch (error) {
+      console.error('Error deleting meal reminders:', error)
+    }
+  }
+
+  static deleteMealRemindersByAthleteId(athleteId: string): void {
+    try {
+      const reminders = this.getMealReminders().filter(r => r.athleteId !== athleteId)
+      localStorage.setItem(this.STORAGE_KEYS.MEAL_REMINDERS, JSON.stringify(reminders))
+    } catch (error) {
+      console.error('Error deleting meal reminders:', error)
+    }
+  }
+
+  // Métodos para Seguimiento Diario
+  static getDailyTracking(): DailyTracking[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEYS.DAILY_TRACKING)
+      return data ? JSON.parse(data) : []
+    } catch (error) {
+      console.error('Error loading daily tracking:', error)
+      return []
+    }
+  }
+
+  static saveDailyTracking(tracking: DailyTracking): void {
+    try {
+      const trackings = this.getDailyTracking()
+      const existingIndex = trackings.findIndex(t => t.id === tracking.id)
+      
+      if (existingIndex >= 0) {
+        trackings[existingIndex] = tracking
+      } else {
+        trackings.push(tracking)
+      }
+      
+      localStorage.setItem(this.STORAGE_KEYS.DAILY_TRACKING, JSON.stringify(trackings))
+    } catch (error) {
+      console.error('Error saving daily tracking:', error)
+      throw new Error('No se pudo guardar el seguimiento diario')
+    }
+  }
+
+  static getDailyTrackingByAthleteId(athleteId: string): DailyTracking[] {
+    return this.getDailyTracking().filter(t => t.athleteId === athleteId)
+  }
+
+  static getDailyTrackingByMealPlanId(mealPlanId: string): DailyTracking[] {
+    return this.getDailyTracking().filter(t => t.mealPlanId === mealPlanId)
+  }
+
+  static getDailyTrackingByDate(athleteId: string, date: string): DailyTracking | null {
+    const trackings = this.getDailyTrackingByAthleteId(athleteId)
+    return trackings.find(t => t.date === date) || null
+  }
+
+  static deleteDailyTracking(id: string): void {
+    try {
+      const trackings = this.getDailyTracking().filter(t => t.id !== id)
+      localStorage.setItem(this.STORAGE_KEYS.DAILY_TRACKING, JSON.stringify(trackings))
+    } catch (error) {
+      console.error('Error deleting daily tracking:', error)
+      throw new Error('No se pudo eliminar el seguimiento diario')
+    }
+  }
+
+  static deleteDailyTrackingByMealPlanId(mealPlanId: string): void {
+    try {
+      const trackings = this.getDailyTracking().filter(t => t.mealPlanId !== mealPlanId)
+      localStorage.setItem(this.STORAGE_KEYS.DAILY_TRACKING, JSON.stringify(trackings))
+    } catch (error) {
+      console.error('Error deleting daily tracking:', error)
+    }
+  }
+
+  static deleteDailyTrackingByAthleteId(athleteId: string): void {
+    try {
+      const trackings = this.getDailyTracking().filter(t => t.athleteId !== athleteId)
+      localStorage.setItem(this.STORAGE_KEYS.DAILY_TRACKING, JSON.stringify(trackings))
+    } catch (error) {
+      console.error('Error deleting daily tracking:', error)
+    }
+  }
+
+  // Métodos para Análisis Nutricional
+  static getNutritionalAnalyses(): NutritionalAnalysis[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEYS.NUTRITIONAL_ANALYSIS)
+      return data ? JSON.parse(data) : []
+    } catch (error) {
+      console.error('Error loading nutritional analyses:', error)
+      return []
+    }
+  }
+
+  static saveNutritionalAnalysis(analysis: NutritionalAnalysis): void {
+    try {
+      const analyses = this.getNutritionalAnalyses()
+      const existingIndex = analyses.findIndex(a => a.id === analysis.id)
+      
+      if (existingIndex >= 0) {
+        analyses[existingIndex] = analysis
+      } else {
+        analyses.push(analysis)
+      }
+      
+      localStorage.setItem(this.STORAGE_KEYS.NUTRITIONAL_ANALYSIS, JSON.stringify(analyses))
+    } catch (error) {
+      console.error('Error saving nutritional analysis:', error)
+      throw new Error('No se pudo guardar el análisis nutricional')
+    }
+  }
+
+  static getNutritionalAnalysisByMealPlanId(mealPlanId: string): NutritionalAnalysis[] {
+    return this.getNutritionalAnalyses().filter(a => a.mealPlanId === mealPlanId)
+  }
+
+  static getLatestNutritionalAnalysis(mealPlanId: string): NutritionalAnalysis | null {
+    const analyses = this.getNutritionalAnalysisByMealPlanId(mealPlanId)
+    if (analyses.length === 0) return null
+    
+    return analyses.sort((a, b) => new Date(b.analysisDate).getTime() - new Date(a.analysisDate).getTime())[0]
+  }
+
+  static deleteNutritionalAnalysis(id: string): void {
+    try {
+      const analyses = this.getNutritionalAnalyses().filter(a => a.id !== id)
+      localStorage.setItem(this.STORAGE_KEYS.NUTRITIONAL_ANALYSIS, JSON.stringify(analyses))
+    } catch (error) {
+      console.error('Error deleting nutritional analysis:', error)
+      throw new Error('No se pudo eliminar el análisis nutricional')
+    }
+  }
+
   // Métodos de utilidad
   static exportData(): string {
     try {
@@ -245,6 +509,10 @@ export class DataStorage {
         treatmentPlans: this.getTreatmentPlans(),
         alerts: this.getAlerts(),
         reports: this.getReports(),
+        mealPlans: this.getMealPlans(),
+        mealReminders: this.getMealReminders(),
+        dailyTracking: this.getDailyTracking(),
+        nutritionalAnalyses: this.getNutritionalAnalyses(),
         exportDate: new Date().toISOString()
       }
       
@@ -277,6 +545,22 @@ export class DataStorage {
       
       if (data.reports) {
         localStorage.setItem(this.STORAGE_KEYS.REPORTS, JSON.stringify(data.reports))
+      }
+
+      if (data.mealPlans) {
+        localStorage.setItem(this.STORAGE_KEYS.MEAL_PLANS, JSON.stringify(data.mealPlans))
+      }
+
+      if (data.mealReminders) {
+        localStorage.setItem(this.STORAGE_KEYS.MEAL_REMINDERS, JSON.stringify(data.mealReminders))
+      }
+
+      if (data.dailyTracking) {
+        localStorage.setItem(this.STORAGE_KEYS.DAILY_TRACKING, JSON.stringify(data.dailyTracking))
+      }
+
+      if (data.nutritionalAnalyses) {
+        localStorage.setItem(this.STORAGE_KEYS.NUTRITIONAL_ANALYSIS, JSON.stringify(data.nutritionalAnalyses))
       }
     } catch (error) {
       console.error('Error importing data:', error)
@@ -456,6 +740,58 @@ export class DataStorage {
       ]
 
       sampleAlerts.forEach(alert => this.saveAlert(alert))
+
+      // Crear algunos planes alimenticios de ejemplo
+      const sampleMealPlans: MealPlan[] = [
+        {
+          id: generateId(),
+          athleteId: sampleAthletes[0].id, // Carlos Rodríguez
+          name: 'Plan Nutricional - Temporada Competitiva',
+          description: 'Plan alimenticio diseñado para mejorar rendimiento durante la temporada de competencias',
+          createdDate: '2024-01-15',
+          startDate: '2024-01-20',
+          status: 'active',
+          createdBy: 'Dra. Ana Nutricionista',
+          nutritionalGoals: {
+            dailyCalories: 2200,
+            proteinPercentage: 20,
+            carbsPercentage: 55,
+            fatsPercentage: 25,
+            fiberGoal: 25,
+            hydrationGoal: 2.5
+          },
+          weeklyPlan: {
+            monday: {
+              meals: [
+                {
+                  id: generateId(),
+                  name: 'Desayuno Energético',
+                  type: 'desayuno',
+                  foods: [],
+                  scheduledTime: '07:00',
+                  instructions: 'Consumir 30 minutos antes del entrenamiento',
+                  nutritionalSummary: {
+                    totalCalories: 450,
+                    totalProtein: 18,
+                    totalCarbs: 65,
+                    totalFats: 12,
+                    totalFiber: 8
+                  }
+                }
+              ],
+              notes: 'Día de entrenamiento intenso'
+            }
+          },
+          restrictions: {
+            allergies: [],
+            intolerances: [],
+            dietaryPreferences: [],
+            medicalRestrictions: []
+          }
+        }
+      ]
+
+      sampleMealPlans.forEach(plan => this.saveMealPlan(plan))
     }
   }
 }
@@ -489,6 +825,37 @@ export function useDataStorage() {
     // Reportes
     getReports: DataStorage.getReports,
     saveReport: DataStorage.saveReport,
+    
+    // Planes alimenticios
+    getMealPlans: DataStorage.getMealPlans,
+    saveMealPlan: DataStorage.saveMealPlan,
+    getMealPlanById: DataStorage.getMealPlanById,
+    getMealPlansByAthleteId: DataStorage.getMealPlansByAthleteId,
+    getActiveMealPlanByAthleteId: DataStorage.getActiveMealPlanByAthleteId,
+    deleteMealPlan: DataStorage.deleteMealPlan,
+    
+    // Recordatorios
+    getMealReminders: DataStorage.getMealReminders,
+    saveMealReminder: DataStorage.saveMealReminder,
+    getMealRemindersByAthleteId: DataStorage.getMealRemindersByAthleteId,
+    getMealRemindersByMealPlanId: DataStorage.getMealRemindersByMealPlanId,
+    getActiveMealReminders: DataStorage.getActiveMealReminders,
+    deleteMealReminder: DataStorage.deleteMealReminder,
+    
+    // Seguimiento diario
+    getDailyTracking: DataStorage.getDailyTracking,
+    saveDailyTracking: DataStorage.saveDailyTracking,
+    getDailyTrackingByAthleteId: DataStorage.getDailyTrackingByAthleteId,
+    getDailyTrackingByMealPlanId: DataStorage.getDailyTrackingByMealPlanId,
+    getDailyTrackingByDate: DataStorage.getDailyTrackingByDate,
+    deleteDailyTracking: DataStorage.deleteDailyTracking,
+    
+    // Análisis nutricional
+    getNutritionalAnalyses: DataStorage.getNutritionalAnalyses,
+    saveNutritionalAnalysis: DataStorage.saveNutritionalAnalysis,
+    getNutritionalAnalysisByMealPlanId: DataStorage.getNutritionalAnalysisByMealPlanId,
+    getLatestNutritionalAnalysis: DataStorage.getLatestNutritionalAnalysis,
+    deleteNutritionalAnalysis: DataStorage.deleteNutritionalAnalysis,
     
     // Utilidades
     exportData: DataStorage.exportData,
