@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { validateCredentials, updateLastLogin } from "@/data/users"
+import { validatePatientCredentials, updatePatientLastLogin, getAthleteByCredentialId, validateInstitutionCredentials, updateInstitutionLastLogin } from "@/data/patientCredentials"
 
 const authOptions: NextAuthOptions = {
   providers: [
@@ -23,19 +24,58 @@ const authOptions: NextAuthOptions = {
           throw new Error("Se requiere email y contraseña")
         }
 
-        // Validar credenciales contra la base de datos de usuarios
-        const user = validateCredentials(credentials.email, credentials.password)
+        // Primero intentar validar como usuario del sistema (admin, nutricionista, asistente)
+        const systemUser = validateCredentials(credentials.email, credentials.password)
 
-        if (user) {
+        if (systemUser) {
           // Actualizar último login
-          updateLastLogin(user.id)
+          updateLastLogin(systemUser.id)
           
           // Retornar objeto de usuario para la sesión
           return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
+            id: systemUser.id,
+            name: systemUser.name,
+            email: systemUser.email,
+            role: systemUser.role,
+          }
+        }
+
+        // Si no es usuario del sistema, intentar validar como paciente
+        const patient = validatePatientCredentials(credentials.email, credentials.password)
+
+        if (patient) {
+          // Obtener datos del atleta
+          const athleteData = getAthleteByCredentialId(patient.athleteId)
+          
+          if (athleteData) {
+            // Actualizar último login del paciente
+            updatePatientLastLogin(credentials.email)
+            
+            // Retornar objeto de paciente para la sesión
+            return {
+              id: patient.athleteId, // Usar el ID del atleta como ID principal
+              name: athleteData.fullName,
+              email: patient.email,
+              role: "patient",
+              athleteId: patient.athleteId,
+            }
+          }
+        }
+
+        // Si no es paciente, intentar validar como institución
+        const institution = validateInstitutionCredentials(credentials.email, credentials.password)
+
+        if (institution) {
+          // Actualizar último login de la institución
+          updateInstitutionLastLogin(credentials.email)
+          
+          // Retornar objeto de institución para la sesión
+          return {
+            id: institution.institutionId,
+            name: institution.name,
+            email: institution.email,
+            role: "institucion",
+            institutionId: institution.institutionId,
           }
         }
         
@@ -65,6 +105,8 @@ const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role
+        token.athleteId = user.athleteId // Para pacientes
+        token.institutionId = user.institutionId // Para instituciones
       }
       return token
     },
@@ -74,6 +116,8 @@ const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id
         session.user.role = token.role
+        session.user.athleteId = token.athleteId // Para pacientes
+        session.user.institutionId = token.institutionId // Para instituciones
       }
       return session
     },

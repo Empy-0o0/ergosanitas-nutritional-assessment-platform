@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { Athlete, NutritionalAlert, ABCDEvaluation } from '@/lib/types'
 import { DataStorage } from '@/lib/storage'
 import { formatDate, getStatusColor, getStatusText, getCategoryText } from '@/lib/utils'
@@ -41,6 +42,25 @@ export default function Dashboard() {
     setAlerts(DataStorage.getActiveAlerts())
     setLoading(false)
   }, [])
+
+  // Redirección según el rol del usuario
+  const { data: session } = useSession()
+  
+  useEffect(() => {
+    if (session?.user?.role === "patient") {
+      // Si es un paciente, redirigir a su dashboard
+      window.location.href = "/dashboard/patient"
+    } else if (session?.user?.role === "nutricionista") {
+      // Si es un nutricionista, redirigir a su dashboard
+      window.location.href = "/dashboard/nutricionista"
+    } else if (session?.user?.role === "admin") {
+      // Si es admin, redirigir a su dashboard
+      window.location.href = "/dashboard/admin"
+    } else if (session?.user?.role === "asistente") {
+      // Si es asistente, redirigir a su dashboard
+      window.location.href = "/dashboard/asistente"
+    }
+  }, [session])
 
   const handleSaveAthlete = () => {
     if (!newAthlete.fullName || !newAthlete.birthDate || !newAthlete.height || !newAthlete.weight) {

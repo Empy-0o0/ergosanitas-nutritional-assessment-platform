@@ -4,7 +4,7 @@ import { generateId } from '@/lib/utils'
 // Datos de ejemplo completos para cada sección ABCD
 export const SAMPLE_ATHLETES_ABCD: Athlete[] = [
   {
-    id: generateId(),
+    id: "athlete-carlos-rodriguez-001",
     fullName: 'Carlos Rodríguez',
     birthDate: '2011-03-15',
     age: 12,
@@ -146,7 +146,7 @@ export const SAMPLE_ATHLETES_ABCD: Athlete[] = [
     }
   },
   {
-    id: generateId(),
+    id: "athlete-maria-fernandez-002",
     fullName: 'María Fernández',
     birthDate: '2008-07-22',
     age: 15,
@@ -288,7 +288,7 @@ export const SAMPLE_ATHLETES_ABCD: Athlete[] = [
     }
   },
   {
-    id: generateId(),
+    id: "athlete-javier-lopez-003",
     fullName: 'Javier López',
     birthDate: '2015-11-08',
     age: 8,
@@ -430,7 +430,7 @@ export const SAMPLE_ATHLETES_ABCD: Athlete[] = [
     }
   },
   {
-    id: generateId(),
+    id: "athlete-ana-martinez-004",
     fullName: 'Ana Martínez',
     birthDate: '2006-12-03',
     age: 17,
@@ -572,7 +572,7 @@ export const SAMPLE_ATHLETES_ABCD: Athlete[] = [
     }
   },
   {
-    id: generateId(),
+    id: "athlete-pedro-sanchez-005",
     fullName: 'Pedro Sánchez',
     birthDate: '2013-05-18',
     age: 10,

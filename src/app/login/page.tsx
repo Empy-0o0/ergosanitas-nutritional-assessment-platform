@@ -99,12 +99,27 @@ export default function LoginPage() {
           )}
 
           {/* Credenciales de prueba */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-blue-800 mb-2">Credenciales de prueba:</h3>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p><strong>Admin:</strong> doctor@ergosanitas.com / ergosanitas2024</p>
-              <p><strong>Nutricionista:</strong> maria.gonzalez@ergosanitas.com / nutricion123</p>
-              <p><strong>Asistente:</strong> juan.perez@ergosanitas.com / asistente456</p>
+          <div className="mb-6 space-y-4">
+            {/* Credenciales del personal */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">Personal ErgoSanitas:</h3>
+              <div className="text-xs text-blue-700 space-y-1">
+                <p><strong>Admin:</strong> doctor@ergosanitas.com / ergosanitas2024</p>
+                <p><strong>Nutricionista:</strong> maria.gonzalez@ergosanitas.com / nutricion123</p>
+                <p><strong>Asistente:</strong> juan.perez@ergosanitas.com / asistente456</p>
+              </div>
+            </div>
+            
+            {/* Credenciales de pacientes */}
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-green-800 mb-2">Acceso para Atletas/Pacientes:</h3>
+              <div className="text-xs text-green-700 space-y-1">
+                <p><strong>Carlos Rodríguez (12 años):</strong> carlos.rodriguez@atleta.com / carlos123</p>
+                <p><strong>María Fernández (15 años):</strong> maria.fernandez@atleta.com / maria123</p>
+                <p><strong>Javier López (8 años):</strong> javier.lopez@atleta.com / javier123</p>
+                <p><strong>Ana Martínez (17 años):</strong> ana.martinez@atleta.com / ana123</p>
+                <p><strong>Pedro Sánchez (10 años):</strong> pedro.sanchez@atleta.com / pedro123</p>
+              </div>
             </div>
           </div>
 

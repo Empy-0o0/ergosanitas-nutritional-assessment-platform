@@ -8,6 +8,8 @@ declare module "next-auth" {
       email?: string | null
       image?: string | null
       role: string
+      athleteId?: string // Para pacientes, referencia al ID del atleta
+      institutionId?: string // Para instituciones, referencia al ID de la institución
     }
   }
 
@@ -16,6 +18,8 @@ declare module "next-auth" {
     name: string
     email: string
     role: string
+    athleteId?: string // Para pacientes, referencia al ID del atleta
+    institutionId?: string // Para instituciones, referencia al ID de la institución
   }
 }
 
@@ -23,5 +27,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string
     role: string
+    athleteId?: string // Para pacientes, referencia al ID del atleta
+    institutionId?: string // Para instituciones, referencia al ID de la institución
   }
 }

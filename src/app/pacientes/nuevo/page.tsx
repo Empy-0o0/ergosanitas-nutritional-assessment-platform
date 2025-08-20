@@ -1,113 +1,63 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Athlete } from '@/lib/types'
 import { DataStorage } from '@/lib/storage'
-import { AnthropometryCalculations } from '@/lib/calculations'
 import { generateId } from '@/lib/utils'
 
 export default function NuevoPacientePage() {
+  const { data: session } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  
   const [formData, setFormData] = useState({
     fullName: '',
     birthDate: '',
-    gender: 'male' as 'male' | 'female',
+    gender: '',
     club: '',
     position: '',
-    category: '9-13' as '5-8' | '9-13' | '14-18',
     height: '',
     weight: '',
-    // Información adicional
-    phone: '',
-    email: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    medicalHistory: '',
-    allergies: '',
-    medications: '',
-    // Información deportiva
-    yearsPlaying: '',
-    trainingDays: '',
-    trainingHours: '',
-    competitions: '',
-    previousInjuries: '',
-    // Información nutricional
-    dietaryRestrictions: '',
-    supplements: '',
-    hydrationHabits: '',
-    sleepHours: ''
+    bodyFatPercentage: '',
+    hemoglobin: '',
+    iron: '',
+    vitaminD: '',
+    systolicBP: '',
+    diastolicBP: '',
+    heartRate: '',
+    dailyCalories: '',
+    dailyProtein: '',
+    dailyWater: '',
+    mealsPerDay: '3',
+    foodLikes: '',
+    foodDislikes: '',
+    allergies: ''
   })
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    // Campos obligatorios
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'El nombre completo es obligatorio'
-    }
-
-    if (!formData.birthDate) {
-      newErrors.birthDate = 'La fecha de nacimiento es obligatoria'
-    } else {
-      const birthDate = new Date(formData.birthDate)
-      const today = new Date()
-      const age = today.getFullYear() - birthDate.getFullYear()
-      
-      if (age < 5 || age > 25) {
-        newErrors.birthDate = 'La edad debe estar entre 5 y 25 años'
-      }
-    }
-
-    if (!formData.height || parseFloat(formData.height) <= 0) {
-      newErrors.height = 'La altura debe ser un número positivo'
-    }
-
-    if (!formData.weight || parseFloat(formData.weight) <= 0) {
-      newErrors.weight = 'El peso debe ser un número positivo'
-    }
-
-    if (!formData.club.trim()) {
-      newErrors.club = 'El club es obligatorio'
-    }
-
-    if (!formData.position.trim()) {
-      newErrors.position = 'La posición es obligatoria'
-    }
-
-    // Validar email si se proporciona
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'El email no tiene un formato válido'
-    }
-
-    // Validar teléfonos si se proporcionan
-    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'El teléfono debe tener 10 dígitos'
-    }
-
-    if (formData.emergencyPhone && !/^\d{10}$/.test(formData.emergencyPhone.replace(/\D/g, ''))) {
-      newErrors.emergencyPhone = 'El teléfono de emergencia debe tener 10 dígitos'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   const calculateAge = (birthDate: string) => {
-    const birth = new Date(birthDate)
     const today = new Date()
+    const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
-    
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
-    
     return age
+  }
+
+  const calculateBMI = (height: number, weight: number) => {
+    return parseFloat((weight / ((height / 100) ** 2)).toFixed(1))
   }
 
   const determineCategory = (age: number): '5-8' | '9-13' | '14-18' => {
@@ -116,130 +66,243 @@ export default function NuevoPacientePage() {
     return '14-18'
   }
 
+  const determineNutritionalStatus = (bmi: number, age: number) => {
+    if (age < 18) {
+      if (bmi < 16) return 'danger'
+      if (bmi < 18.5) return 'warning'
+      if (bmi > 25) return 'warning'
+      return 'normal'
+    } else {
+      if (bmi < 18.5) return 'danger'
+      if (bmi > 25) return 'warning'
+      return 'normal'
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!validateForm()) {
-      return
-    }
-
     setLoading(true)
 
     try {
+      const age = calculateAge(formData.birthDate)
       const height = parseFloat(formData.height)
       const weight = parseFloat(formData.weight)
-      const age = calculateAge(formData.birthDate)
-      const bmi = AnthropometryCalculations.calculateBMI(weight, height)
+      const bmi = calculateBMI(height, weight)
       const category = determineCategory(age)
+      const nutritionalStatus = determineNutritionalStatus(bmi, age)
 
       const newAthlete: Athlete = {
         id: generateId(),
-        fullName: formData.fullName.trim(),
+        fullName: formData.fullName,
         birthDate: formData.birthDate,
         age,
-        gender: formData.gender,
-        club: formData.club.trim(),
-        position: formData.position.trim(),
+        gender: formData.gender as 'male' | 'female',
+        club: formData.club,
+        position: formData.position,
         category,
         evaluationDate: new Date().toISOString().split('T')[0],
-        nutritionalStatus: 'normal',
+        nutritionalStatus,
         lastEvaluation: new Date().toISOString().split('T')[0],
+        
         anthropometry: {
           height,
           weight,
-          bmi: parseFloat(bmi.toFixed(1)),
+          bmi,
+          bodyFatPercentage: parseFloat(formData.bodyFatPercentage) || 0,
+          muscleMass: 0,
+          waistCircumference: 0,
+          hipCircumference: 0,
+          armCircumference: 0,
+          skinfoldMeasurements: {
+            triceps: 0,
+            biceps: 0,
+            subscapular: 0,
+            suprailiac: 0
+          },
           percentiles: {
-            heightPercentile: 50, // Se calculará en evaluación completa
+            heightPercentile: 50,
             weightPercentile: 50,
             bmiPercentile: 50
           }
         },
-        // Información adicional
-        contactInfo: {
-          phone: formData.phone,
-          email: formData.email,
-          emergencyContact: formData.emergencyContact,
-          emergencyPhone: formData.emergencyPhone
+
+        biochemistry: {
+          hemoglobin: parseFloat(formData.hemoglobin) || 0,
+          hematocrit: 0,
+          iron: parseFloat(formData.iron) || 0,
+          ferritin: 0,
+          vitaminD: parseFloat(formData.vitaminD) || 0,
+          vitaminB12: 0,
+          folate: 0,
+          glucose: 0,
+          cholesterol: {
+            total: 0,
+            hdl: 0,
+            ldl: 0,
+            triglycerides: 0
+          },
+          proteins: {
+            totalProtein: 0,
+            albumin: 0,
+            prealbumin: 0
+          },
+          electrolytes: {
+            sodium: 0,
+            potassium: 0,
+            calcium: 0,
+            magnesium: 0
+          },
+          lastTestDate: new Date().toISOString().split('T')[0]
         },
-        medicalInfo: {
-          medicalHistory: formData.medicalHistory,
-          allergies: formData.allergies,
-          medications: formData.medications,
-          previousInjuries: formData.previousInjuries
+
+        clinical: {
+          vitalSigns: {
+            bloodPressure: {
+              systolic: parseFloat(formData.systolicBP) || 0,
+              diastolic: parseFloat(formData.diastolicBP) || 0
+            },
+            heartRate: parseFloat(formData.heartRate) || 0,
+            respiratoryRate: 0,
+            temperature: 36.5
+          },
+          physicalExamination: {
+            generalAppearance: 'normal',
+            skinCondition: 'normal',
+            oralHealth: 'normal',
+            lymphNodes: 'normal',
+            edema: false,
+            dehydrationSigns: false
+          },
+          functionalAssessment: {
+            energyLevel: 'normal',
+            sleepQuality: 'good',
+            digestiveSymptoms: [],
+            appetiteLevel: 'good',
+            fatigueLevel: 'none'
+          },
+          medicalHistory: {
+            allergies: formData.allergies ? formData.allergies.split(',').map(s => s.trim()) : [],
+            medications: [],
+            chronicConditions: [],
+            injuries: []
+          },
+          performanceMetrics: {
+            vo2Max: 0,
+            strength: 0,
+            endurance: 0,
+            flexibility: 0,
+            speed: 0
+          }
         },
-        sportsInfo: {
-          yearsPlaying: formData.yearsPlaying ? parseInt(formData.yearsPlaying) : undefined,
-          trainingDays: formData.trainingDays ? parseInt(formData.trainingDays) : undefined,
-          trainingHours: formData.trainingHours ? parseFloat(formData.trainingHours) : undefined,
-          competitions: formData.competitions
-        },
-        nutritionalInfo: {
-          dietaryRestrictions: formData.dietaryRestrictions,
-          supplements: formData.supplements,
-          hydrationHabits: formData.hydrationHabits,
-          sleepHours: formData.sleepHours ? parseFloat(formData.sleepHours) : undefined
+
+        dietetics: {
+          dailyIntake: {
+            calories: parseFloat(formData.dailyCalories) || 0,
+            protein: parseFloat(formData.dailyProtein) || 0,
+            carbohydrates: 0,
+            fats: 0,
+            fiber: 0,
+            water: parseFloat(formData.dailyWater) || 0
+          },
+          mealPattern: {
+            mealsPerDay: parseInt(formData.mealsPerDay) || 3,
+            breakfastTime: '07:00',
+            lunchTime: '12:00',
+            dinnerTime: '19:00',
+            snacks: 0
+          },
+          foodPreferences: {
+            likes: formData.foodLikes ? formData.foodLikes.split(',').map(s => s.trim()) : [],
+            dislikes: formData.foodDislikes ? formData.foodDislikes.split(',').map(s => s.trim()) : [],
+            restrictions: [],
+            culturalPreferences: []
+          },
+          supplementation: {
+            vitamins: [],
+            minerals: [],
+            proteins: [],
+            other: []
+          },
+          hydrationHabits: {
+            waterIntake: parseFloat(formData.dailyWater) || 0,
+            sportsdrinks: false,
+            caffeineIntake: 0
+          },
+          eatingBehavior: {
+            eatingSpeed: 'normal',
+            portionSizes: 'normal',
+            emotionalEating: false,
+            socialEating: false
+          },
+          nutritionalKnowledge: {
+            level: 'basic',
+            areas: []
+          }
         }
       }
 
+      // Guardar el nuevo atleta
       DataStorage.saveAthlete(newAthlete)
-      
-      alert('Paciente registrado exitosamente')
-      router.push(`/pacientes/${newAthlete.id}`)
+
+      // Redirigir al dashboard con mensaje de éxito
+      router.push('/dashboard/nutricionista?success=nuevo-paciente')
       
     } catch (error) {
-      console.error('Error saving athlete:', error)
-      alert('Error al guardar el paciente. Por favor intente nuevamente.')
+      console.error('Error al guardar el paciente:', error)
+      alert('Error al guardar el paciente. Por favor, intente nuevamente.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    
-    // Limpiar error del campo cuando el usuario empiece a escribir
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-
-    // Auto-calcular categoría cuando cambie la fecha de nacimiento
-    if (field === 'birthDate' && value) {
-      const age = calculateAge(value)
-      const category = determineCategory(age)
-      setFormData(prev => ({ ...prev, category }))
-    }
+  if (!session || session.user.role !== 'nutricionista') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600">Acceso no autorizado</p>
+          <Link href="/login" className="text-blue-600 hover:underline">
+            Iniciar sesión
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <Link 
-                href="/pacientes" 
-                className="text-white hover:text-blue-200 transition-colors flex items-center space-x-2"
+              <Link
+                href="/dashboard/nutricionista"
+                className="text-white hover:text-blue-200 transition-colors"
               >
-                <span className="text-xl">←</span>
-                <span>Volver a Pacientes</span>
+                ← Volver al Dashboard
               </Link>
+              <div>
+                <h1 className="text-2xl font-bold">Nuevo Paciente</h1>
+                <p className="text-blue-100">Registro completo de deportista</p>
+              </div>
             </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold">Nuevo Paciente</h1>
-              <p className="text-blue-100 text-sm">Registro completo de deportista</p>
+            
+            <div className="text-right">
+              <p className="font-medium">{session.user.name}</p>
+              <p className="text-blue-200 text-sm">Nutricionista</p>
             </div>
-            <div className="w-32"></div>
           </div>
         </div>
       </header>
 
+      {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-8 space-y-8">
+          
           {/* Información Personal */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Información Personal
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              📋 Información Personal del Atleta
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -249,14 +312,13 @@ export default function NuevoPacientePage() {
                 </label>
                 <input
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.fullName ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="fullName"
                   value={formData.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  placeholder="Ej: Juan Pérez López"
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: Juan Pérez García"
                 />
-                {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
               </div>
 
               <div>
@@ -265,13 +327,12 @@ export default function NuevoPacientePage() {
                 </label>
                 <input
                   type="date"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.birthDate ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="birthDate"
                   value={formData.birthDate}
-                  onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-                {errors.birthDate && <p className="text-red-500 text-sm mt-1">{errors.birthDate}</p>}
               </div>
 
               <div>
@@ -279,10 +340,13 @@ export default function NuevoPacientePage() {
                   Género *
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  name="gender"
                   value={formData.gender}
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
+                  <option value="">Seleccionar género</option>
                   <option value="male">Masculino</option>
                   <option value="female">Femenino</option>
                 </select>
@@ -290,215 +354,57 @@ export default function NuevoPacientePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoría (Auto-calculada)
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                  value={formData.category}
-                  disabled
-                >
-                  <option value="5-8">5-8 años (Iniciación)</option>
-                  <option value="9-13">9-13 años (Desarrollo)</option>
-                  <option value="14-18">14-18 años (Rendimiento)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="Ej: 5551234567"
-                />
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Ej: juan@email.com"
-                />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Contacto de Emergencia */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Contacto de Emergencia
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del Contacto
+                  Club/Institución *
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.emergencyContact}
-                  onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-                  placeholder="Ej: María Pérez (Madre)"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Teléfono de Emergencia
-                </label>
-                <input
-                  type="tel"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.emergencyPhone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={formData.emergencyPhone}
-                  onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
-                  placeholder="Ej: 5559876543"
-                />
-                {errors.emergencyPhone && <p className="text-red-500 text-sm mt-1">{errors.emergencyPhone}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Información Deportiva */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Información Deportiva
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Club/Equipo *
-                </label>
-                <input
-                  type="text"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.club ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="club"
                   value={formData.club}
-                  onChange={(e) => handleInputChange('club', e.target.value)}
-                  placeholder="Nombre del club o equipo"
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: Club Deportivo Juvenil"
                 />
-                {errors.club && <p className="text-red-500 text-sm mt-1">{errors.club}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Posición *
+                  Posición/Especialidad *
                 </label>
                 <input
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.position ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="position"
                   value={formData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
-                  placeholder="Ej: Mediocampista, Delantero"
-                />
-                {errors.position && <p className="text-red-500 text-sm mt-1">{errors.position}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Años Jugando
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.yearsPlaying}
-                  onChange={(e) => handleInputChange('yearsPlaying', e.target.value)}
-                  placeholder="Ej: 3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Días de Entrenamiento por Semana
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="7"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.trainingDays}
-                  onChange={(e) => handleInputChange('trainingDays', e.target.value)}
-                  placeholder="Ej: 3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Horas de Entrenamiento por Día
-                </label>
-                <input
-                  type="number"
-                  min="0.5"
-                  max="8"
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.trainingHours}
-                  onChange={(e) => handleInputChange('trainingHours', e.target.value)}
-                  placeholder="Ej: 2"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Competencias/Torneos
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.competitions}
-                  onChange={(e) => handleInputChange('competitions', e.target.value)}
-                  placeholder="Ej: Liga Local, Torneo Regional"
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: Mediocampista, Velocista, etc."
                 />
               </div>
             </div>
           </div>
 
-          {/* Medidas Antropométricas */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Medidas Antropométricas Básicas
+          {/* Datos Antropométricos */}
+          <div>
+            <h2 className="text-xl font-semibold text-blue-700 mb-6">
+              📏 A: Evaluación Antropométrica
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Altura (cm) *
                 </label>
                 <input
                   type="number"
-                  min="50"
-                  max="250"
-                  step="0.1"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.height ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="height"
                   value={formData.height}
-                  onChange={(e) => handleInputChange('height', e.target.value)}
-                  placeholder="Ej: 150"
+                  onChange={handleInputChange}
+                  required
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 175.5"
                 />
-                {errors.height && <p className="text-red-500 text-sm mt-1">{errors.height}</p>}
               </div>
 
               <div>
@@ -507,189 +413,274 @@ export default function NuevoPacientePage() {
                 </label>
                 <input
                   type="number"
-                  min="10"
-                  max="200"
-                  step="0.1"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.weight ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  name="weight"
                   value={formData.weight}
-                  onChange={(e) => handleInputChange('weight', e.target.value)}
-                  placeholder="Ej: 45.5"
-                />
-                {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight}</p>}
-              </div>
-            </div>
-
-            {formData.height && formData.weight && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>IMC Calculado:</strong> {
-                    AnthropometryCalculations.calculateBMI(
-                      parseFloat(formData.weight), 
-                      parseFloat(formData.height)
-                    ).toFixed(1)
-                  } kg/m²
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Información Médica */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Información Médica
-            </h2>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Historial Médico
-                </label>
-                <textarea
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.medicalHistory}
-                  onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
-                  placeholder="Enfermedades previas, cirugías, condiciones médicas relevantes..."
+                  onChange={handleInputChange}
+                  required
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 70.5"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alergias
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.allergies}
-                  onChange={(e) => handleInputChange('allergies', e.target.value)}
-                  placeholder="Alergias alimentarias, medicamentos, otros..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Medicamentos Actuales
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.medications}
-                  onChange={(e) => handleInputChange('medications', e.target.value)}
-                  placeholder="Medicamentos que toma actualmente..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lesiones Previas
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.previousInjuries}
-                  onChange={(e) => handleInputChange('previousInjuries', e.target.value)}
-                  placeholder="Lesiones deportivas previas, rehabilitación..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Información Nutricional */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Información Nutricional y Hábitos
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Restricciones Dietéticas
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.dietaryRestrictions}
-                  onChange={(e) => handleInputChange('dietaryRestrictions', e.target.value)}
-                  placeholder="Vegetariano, vegano, intolerancias..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Suplementos Actuales
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.supplements}
-                  onChange={(e) => handleInputChange('supplements', e.target.value)}
-                  placeholder="Vitaminas, proteínas, otros suplementos..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hábitos de Hidratación
-                </label>
-                <textarea
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.hydrationHabits}
-                  onChange={(e) => handleInputChange('hydrationHabits', e.target.value)}
-                  placeholder="Cantidad de agua diaria, bebidas deportivas..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Horas de Sueño por Noche
+                  Grasa Corporal (%)
                 </label>
                 <input
                   type="number"
-                  min="4"
-                  max="12"
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={formData.sleepHours}
-                  onChange={(e) => handleInputChange('sleepHours', e.target.value)}
-                  placeholder="Ej: 8"
+                  name="bodyFatPercentage"
+                  value={formData.bodyFatPercentage}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 15.2"
                 />
               </div>
             </div>
           </div>
 
-          {/* Botones de Acción */}
-          <div className="flex justify-end space-x-4">
-            <Link
-              href="/pacientes"
-              className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Cancelar
-            </Link>
+          {/* Datos Bioquímicos */}
+          <div>
+            <h2 className="text-xl font-semibold text-green-700 mb-6">
+              🧪 B: Evaluación Bioquímica
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hemoglobina (g/dL)
+                </label>
+                <input
+                  type="number"
+                  name="hemoglobin"
+                  value={formData.hemoglobin}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 13.5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hierro (μg/dL)
+                </label>
+                <input
+                  type="number"
+                  name="iron"
+                  value={formData.iron}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 95.0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vitamina D (ng/mL)
+                </label>
+                <input
+                  type="number"
+                  name="vitaminD"
+                  value={formData.vitaminD}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 32.0"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Datos Clínicos */}
+          <div>
+            <h2 className="text-xl font-semibold text-orange-700 mb-6">
+              🩺 C: Evaluación Clínica
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Presión Sistólica (mmHg)
+                </label>
+                <input
+                  type="number"
+                  name="systolicBP"
+                  value={formData.systolicBP}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 110"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Presión Diastólica (mmHg)
+                </label>
+                <input
+                  type="number"
+                  name="diastolicBP"
+                  value={formData.diastolicBP}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 70"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Frecuencia Cardíaca (bpm)
+                </label>
+                <input
+                  type="number"
+                  name="heartRate"
+                  value={formData.heartRate}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 75"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alergias (separadas por comas)
+              </label>
+              <textarea
+                name="allergies"
+                value={formData.allergies}
+                onChange={handleInputChange}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: Polen, Mariscos, Nueces"
+              />
+            </div>
+          </div>
+
+          {/* Datos Dietéticos */}
+          <div>
+            <h2 className="text-xl font-semibold text-purple-700 mb-6">
+              🍽️ D: Evaluación Dietética
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Calorías Diarias (kcal)
+                </label>
+                <input
+                  type="number"
+                  name="dailyCalories"
+                  value={formData.dailyCalories}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 2400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Proteínas Diarias (g)
+                </label>
+                <input
+                  type="number"
+                  name="dailyProtein"
+                  value={formData.dailyProtein}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 95.0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Agua Diaria (L)
+                </label>
+                <input
+                  type="number"
+                  name="dailyWater"
+                  value={formData.dailyWater}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ej: 2.8"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comidas por Día
+                </label>
+                <select
+                  name="mealsPerDay"
+                  value={formData.mealsPerDay}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="2">2 comidas</option>
+                  <option value="3">3 comidas</option>
+                  <option value="4">4 comidas</option>
+                  <option value="5">5 comidas</option>
+                  <option value="6">6 comidas</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Preferencias Alimentarias
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alimentos que le gustan (separados por comas)
+                  </label>
+                  <textarea
+                    name="foodLikes"
+                    value={formData.foodLikes}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Ej: Pollo, Arroz, Frutas, Verduras"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alimentos que no le gustan (separados por comas)
+                  </label>
+                  <textarea
+                    name="foodDislikes"
+                    value={formData.foodDislikes}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Ej: Pescado, Brócoli, Espinacas"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Botón de envío */}
+          <div className="flex justify-end pt-6 border-t border-gray-200">
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className={`px-8 py-3 rounded-lg font-medium transition-colors ${
+                loading
+                  ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
             >
-              {loading && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              )}
-              <span>{loading ? 'Guardando...' : 'Registrar Paciente'}</span>
+              {loading ? 'Guardando...' : '✅ Guardar Paciente'}
             </button>
           </div>
         </form>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400 text-sm">
-            &copy; 2024 ErgoSanitas - Registro de Nuevo Paciente
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }
