@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter, Montserrat } from "next/font/google"
 import "./globals.css"
+import { SessionProvider } from "@/components/SessionProvider"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -33,9 +34,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#1a73e8" />
       </head>
       <body className={`${inter.className} antialiased bg-gray-50 text-gray-900`}>
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <SessionProvider>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </SessionProvider>
       </body>
     </html>
   )

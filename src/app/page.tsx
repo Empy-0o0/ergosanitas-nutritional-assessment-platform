@@ -8,6 +8,7 @@ import { formatDate, getStatusColor, getStatusText, getCategoryText } from '@/li
 import { AnthropometryCalculations } from '@/lib/calculations'
 import { initializeEnhancedDatabase } from '@/data/sampleData'
 import ABCDEvaluationForm from '@/components/evaluations/ABCDEvaluationForm'
+import { AuthNavigation } from '@/components/AuthNavigation'
 
 export default function Dashboard() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
@@ -176,15 +177,7 @@ export default function Dashboard() {
               </Link>
             </nav>
 
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="font-medium">Dr. Nutriólogo</p>
-                <p className="text-blue-200 text-sm">Especialista Deportivo</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium">DN</span>
-              </div>
-            </div>
+            <AuthNavigation />
           </div>
         </div>
       </header>
